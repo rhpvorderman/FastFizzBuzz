@@ -3,7 +3,7 @@
 
 #define FIZZBUZZ_LIMIT (1ULL << 32ULL)
 int main() {
-    for (uint64_t i=1l; i < FIZZBUZZ_LIMIT; i++) {
+    for (uint64_t i=1; i < FIZZBUZZ_LIMIT; i++) {
         if (i % 15 == 0) {
             printf("FizzBuzz\n");
         }
@@ -17,4 +17,5 @@ int main() {
             printf("%llu\n", i);
         }
     }
+    return 0;
 }

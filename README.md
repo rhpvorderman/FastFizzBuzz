@@ -19,3 +19,7 @@ my laptop. Not very impressive.
 [Also very straightforward](./reference.c). Compile with `gcc -O3 ./reference.c` and
 the result reachees 250 MiB/s. Workable, but not good enough. Now the fun can 
 begin!
+
+# Verification
+The reference program should output something that md5 hashes to 
+`6c272a12ed1a48b4bea560ecf642a57a`.
