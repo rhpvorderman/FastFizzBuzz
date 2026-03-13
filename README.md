@@ -45,3 +45,7 @@ that can do just that.
 - A problem with number printing is not knowing how long the number is going 
   to be. Since we increment, we can simply track the number of digits, and
   increase these once a treshold is hit. 
+
+By doing it fairly naively, converting one decimal at the time and making sure
+ the decimals are known beforehand the code becomes 
+ [a bit larger](./number_conversion.c), but now speeds of 1GiB/s are reached!
