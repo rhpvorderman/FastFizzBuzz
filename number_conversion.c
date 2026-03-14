@@ -53,73 +53,53 @@ static int write_number(uint64_t number, size_t number_of_decimals, char *restri
     if (number_of_decimals > 20) {
         return -1;
     }
-    size_t buffer_pos = 0;
+    /* All the statements below are independent. As a result it should be easy
+       for the CPU to pipeline them. */    
     switch (number_of_decimals) {
         case 20:
-            buffer[buffer_pos] = (number / TEN_TO_THE_19) + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 20] = (number / TEN_TO_THE_19) + '0';
         case 19:
-            buffer[buffer_pos] = (number / TEN_TO_THE_18) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 19] = (number / TEN_TO_THE_18) % 10 + '0';
         case 18:
-            buffer[buffer_pos] = (number / TEN_TO_THE_17) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 18] = (number / TEN_TO_THE_17) % 10 + '0';
         case 17:
-            buffer[buffer_pos] = (number / TEN_TO_THE_16) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 17] = (number / TEN_TO_THE_16) % 10 + '0';
         case 16:
-            buffer[buffer_pos] = (number / TEN_TO_THE_15) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 16] = (number / TEN_TO_THE_15) % 10 + '0';
         case 15:
-            buffer[buffer_pos] = (number / TEN_TO_THE_14) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 15] = (number / TEN_TO_THE_14) % 10 + '0';
         case 14:
-            buffer[buffer_pos] = (number / TEN_TO_THE_13) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 14] = (number / TEN_TO_THE_13) % 10 + '0';
         case 13:
-            buffer[buffer_pos] = (number / TEN_TO_THE_12) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 13] = (number / TEN_TO_THE_12) % 10 + '0';
         case 12:
-            buffer[buffer_pos] = (number / TEN_TO_THE_11) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 12] = (number / TEN_TO_THE_11) % 10 + '0';
         case 11:
-            buffer[buffer_pos] = (number / TEN_TO_THE_10) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 11] = (number / TEN_TO_THE_10) % 10 + '0';
         case 10:
-            buffer[buffer_pos] = (number / TEN_TO_THE_9) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 10] = (number / TEN_TO_THE_9) % 10 + '0';
         case 9:
-            buffer[buffer_pos] = (number / TEN_TO_THE_8) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 9] = (number / TEN_TO_THE_8) % 10 + '0';
         case 8:
-            buffer[buffer_pos] = (number / TEN_TO_THE_7) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 8] = (number / TEN_TO_THE_7) % 10 + '0';
         case 7:
-            buffer[buffer_pos] = (number / TEN_TO_THE_6) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 7] = (number / TEN_TO_THE_6) % 10 + '0';
         case 6:
-            buffer[buffer_pos] = (number / TEN_TO_THE_5) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 6] = (number / TEN_TO_THE_5) % 10 + '0';
         case 5:
-            buffer[buffer_pos] = (number / TEN_TO_THE_4) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 5] = (number / TEN_TO_THE_4) % 10 + '0';
         case 4:
-            buffer[buffer_pos] = (number / TEN_TO_THE_3) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 4] = (number / TEN_TO_THE_3) % 10 + '0';
         case 3:
-            buffer[buffer_pos] = (number / TEN_TO_THE_2) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 3] = (number / TEN_TO_THE_2) % 10 + '0';
         case 2:
-            buffer[buffer_pos] = (number / TEN_TO_THE_1) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 2] = (number / TEN_TO_THE_1) % 10 + '0';
         case 1:
-            buffer[buffer_pos] = (number / TEN_TO_THE_0) % 10 + '0';
-            buffer_pos += 1;
+            buffer[number_of_decimals - 1] = (number / TEN_TO_THE_0) % 10 + '0';
         case 0:
-            buffer[buffer_pos] = '\n';
-            buffer_pos += 1;
+            buffer[number_of_decimals] = '\n';
     }
-    return buffer_pos;
+    return number_of_decimals + 1;
 }
 
 int main() {
