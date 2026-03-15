@@ -50,4 +50,21 @@ By doing it fairly naively, converting one decimal at the time and making sure
  the decimals are known beforehand the code becomes 
  [a bit larger](./number_conversion.c), but now speeds of 1GiB/s are reached!
 
+ Since we are now running in the speed limits of MD5SUM to verify we will use 
+ xxh128sum instead. The number to look for is 89376fe05131799159c9907addd39b66.
+
 # Uncouple number of decimal calculation
+Since the range between 2^8 (256) and 2^9 (512) holds the same number of 
+decimals we can use this fact to create a quick number of decimal calculation.
+Simply use the leading zero count and we know the most significant bit. Then
+we can use a lookup table in order to get the correct number of digits. In
+ambiguous cases (2^9 is 512 and numbers with the 9th bit set go up to 1023) 
+we check if the number exceeds the threshold. Since there is only one threshold
+per ambigious case this check is quite fast. 
+
+This is [done here](./number_of_decimal_calculation.c). The advantage of doing
+this is that we can make the loop a bit simpler. The disadvantage is that
+it is slightly slower (by 1-2%) but since this calculation allows is to
+determine the number of digits at any point without having to track it this
+confers some advantages for later.
+
