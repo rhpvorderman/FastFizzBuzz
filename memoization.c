@@ -150,6 +150,22 @@ static size_t fizzbuzz(uint64_t start, uint64_t stop, char *buffer) {
     return buffer_size;
 }
 
+static char zero_to_999[4000];
+
+static void initialize_zero_to_999(void) {
+    for (size_t i=0; i<10; i++) {
+        for (size_t j=0; j<10; j++) {
+            for (size_t k=0; k<10; k++) {
+                size_t pos = (i * 100 + j * 10 + k * 1) * 4;
+                zero_to_999[pos + 0] = i + '0';
+                zero_to_999[pos + 1] = j + '0';
+                zero_to_999[pos + 2] = k + '0';
+                zero_to_999[pos + 3] = '\n';
+            }
+        }
+    }
+}
+
 static size_t fizzbuzz_memoized(uint64_t start, uint64_t stop, char *buffer) {
     if (start % 1000 != 0 || stop - start > 1000) {
         fprintf(
@@ -165,6 +181,7 @@ static size_t fizzbuzz_memoized(uint64_t start, uint64_t stop, char *buffer) {
     char prefix[21];
     write_number(start, number_of_decimals, prefix);
     size_t prefix_length = number_of_decimals - 3;
+    size_t index = 0;
     for (uint64_t i=start; i < stop; i++) {
 
         if (i % 15 == 0) {
@@ -182,9 +199,12 @@ static size_t fizzbuzz_memoized(uint64_t start, uint64_t stop, char *buffer) {
         else {
             memcpy(buffer + buffer_size, prefix, 20);
             buffer_size += prefix_length;
-            /* Only calculate the last 3 digits. */
-            buffer_size += write_number(i, 3, buffer + buffer_size);
+            /* Lookup the last 3 digits. */
+            size_t pos = index * 4;
+            memcpy(buffer + buffer_size, zero_to_999 + pos, 4);
+            buffer_size += 4;
         }
+        index += 1;
     }   
     return buffer_size;
 }
@@ -197,6 +217,7 @@ static inline uint64_t uint64_min(uint64_t a, uint64_t b) {
 
 int main() {
     char buffer[BUFFER_SIZE];
+    initialize_zero_to_999();
     uint64_t start = 1;
     uint64_t end = FIZZBUZZ_LIMIT;
 
