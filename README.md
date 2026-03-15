@@ -79,3 +79,20 @@ This is [done here](./uncouple_buffer.c). It is slightly slower because less
 of the buffer is populated and more write calls are used, but this can 
 probably be optimized later. For now the fizzbuzz function is simple again
 and we can look to further optimizations.
+
+# Memoization
+
+Since we now process ranges of numbers in the fizzbuzz function, the ranges
+can be strategically chosen. The range 1000-1999 for instance never changes
+the number of digits. This is also true for other ranges of thousand such 
+as 357000-357999 and 12412434000-12412434999. What also is true is that in 
+a range of thousand, all numbers preceding the last three digits remain the 
+same. 
+
+So we can:
+
++ Only calculate the number of digit once per thousand.
++ Calculate the prefix once per thousand.
++ Only calculate the last three digits, but rather than doing this, a 1000-entry
+  lookup table is more efficient.
+
