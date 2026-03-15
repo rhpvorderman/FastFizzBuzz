@@ -68,3 +68,14 @@ it is slightly slower (by 1-2%) but since this calculation allows is to
 determine the number of digits at any point without having to track it this
 confers some advantages for later.
 
+# Uncouple buffer flush calculation
+
+Rather than calculating the buffer usage and flushing accordingly, we can
+also create a fizzbuzz function with a start and stop and a buffer argument. 
+We can ensure the buffer is always big enough for the given amount of work.
+This will make the loop simpler still.
+
+This is [done here](./uncouple_buffer.c). It is slightly slower because less
+of the buffer is populated and more write calls are used, but this can 
+probably be optimized later. For now the fizzbuzz function is simple again
+and we can look to further optimizations.
