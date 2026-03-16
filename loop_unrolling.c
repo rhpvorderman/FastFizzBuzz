@@ -281,7 +281,7 @@ static size_t fizzbuzz_memoized(uint64_t start, uint64_t stop, char *restrict bu
     }   
 
     /*This is the hot loop where most of the work happens */
-    uint64_t unroll_stop = stop - 15;
+    uint64_t unroll_stop = stop - 14;
     for (; i<unroll_stop; i+=15 ) {
         char *restrict cursor = buffer + buffer_size;
         /* Fixed size memcpy faster than function call */
