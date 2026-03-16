@@ -108,6 +108,25 @@ The fizzes and buzzes are always in the same place. So we can do some loop
 unrolling and remove the nasty tests that mess with the branch prediction as
 no tests are needed.
 
-The result is in [loop_unrolling.c](./loop_unrolling.c) and this reaches 
-speeds of 2.5 GB/s. Not too shabby. 
+What is done to achieve high speed is to take the first number of the thousand.
+Then fizzbuzz is entirely written out with 15 numbers, with the first number as a template.
+Then on each unrolled loop the last digits for each number in the template are updated to
+the correct ones. This requires one memory copy of the template and then 8 additional DWORD
+copies in the correct places. This is very fast.
 
+The result is in [loop_unrolling.c](./loop_unrolling.c) and this reaches 
+speeds of 5 GB/s. Not too shabby. 
+
+# Larger buffers
+
+Given the large amount of system time, it might be that simply too many write calls are 
+issued. Every group of thousand is directly written. Instead, we now use a 256K buffer.
+This fits in L2 cache (512K in this machine.) The size of a loop is estimated and if it
+would overflow the buffer, the buffer is written to stdout.
+Larger sizes do not confer extra advantages.
+
+The result is in [larger_buffer.c](./larger_buffer.c). This runs the entire 
+program in 1.8 seconds. That equates to more than 16 GB/s. Quite great. 
+That is better than the best single-threaded result I saw online when I did
+a quick scan before I started this challenge. But still, there could be 
+much better implementations out there.
