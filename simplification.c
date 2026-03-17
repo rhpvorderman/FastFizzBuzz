@@ -3,9 +3,32 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define FIZZBUZZ_LIMIT (1ULL << 32ULL)
 #define BUFFER_SIZE (256 * 1024)
 
+static char zero_to_9999[40000];
+
+static void initialize_zero_to_9999(void) {
+    for (size_t i=0; i<10; i++) {
+        for (size_t j=0; j<10; j++) {
+            for (size_t k=0; k<10; k++) {
+                for (size_t l=0; l<10; l++) {
+                    size_t pos = (i * 1000 + j * 100 + k * 10 + l * 1) * 4;
+                    zero_to_9999[pos + 0] = i + '0';
+                    zero_to_9999[pos + 1] = j + '0';
+                    zero_to_9999[pos + 2] = k + '0';
+                    zero_to_9999[pos + 3] = l + '0';
+                }
+            }
+        }
+    }
+}
+
+static inline uint64_t uint64_min(uint64_t a, uint64_t b) {
+    if (a < b) {
+        return a;
+    }
+    return b;
+}
 
 static inline size_t calculate_number_of_decimals(uint64_t number) {
     size_t number_of_decimals = 0;
@@ -38,33 +61,6 @@ static size_t fizzbuzz(uint64_t start, uint64_t stop, char *buffer) {
     }   
     return buffer_size;
 }
-
-static char zero_to_9999[40000];
-
-static void initialize_zero_to_9999(void) {
-    for (size_t i=0; i<10; i++) {
-        for (size_t j=0; j<10; j++) {
-            for (size_t k=0; k<10; k++) {
-                for (size_t l=0; l<10; l++) {
-                    size_t pos = (i * 1000 + j * 100 + k * 10 + l * 1) * 4;
-                    zero_to_9999[pos + 0] = i + '0';
-                    zero_to_9999[pos + 1] = j + '0';
-                    zero_to_9999[pos + 2] = k + '0';
-                    zero_to_9999[pos + 3] = l + '0';
-                }
-            }
-        }
-    }
-}
-
-
-static inline uint64_t uint64_min(uint64_t a, uint64_t b) {
-    if (a < b) {
-        return a;
-    }
-    return b;
-}
-
 
 static size_t fizzbuzz_memoized(
     uint64_t start, 
@@ -186,7 +182,7 @@ int main() {
     char buffer[BUFFER_SIZE];
     initialize_zero_to_9999();
     uint64_t start = 1;
-    uint64_t end = FIZZBUZZ_LIMIT;
+    uint64_t end = 1ULL << 32ULL;
 
     /* First calculate the result up to 10000 */
     uint64_t stop = uint64_min(10000, end);
