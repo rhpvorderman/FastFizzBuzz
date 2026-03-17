@@ -140,3 +140,8 @@ the fast loop. Interestingly, this does not do much. It reduces runtime from
 1.8 to 1.7 seconds. Still a meaningful percentage, but not that much faster.
  On the other hand, since so much time is now spent in the loop rather than 
  outside it maybe we can do some...
+
+# Simplification
+
+- First break out the little alignment loops at the beginning and end of
+  the unroll function. These van be fulfilled by the same function.
