@@ -149,4 +149,9 @@ the fast loop. Interestingly, this does not do much. It reduces runtime from
   running fizzbuzz.
 - Since we only create a template number once every ten thousand times, 
   `sprintf` can be used instead. This hardly slows down the program and 
-  the write_number function can be removed.
+  the write_number function can be removed. It also calculates the number
+  of digits automatically.
+- Since the number of digits is only needed once outside of the memoized 
+  function to precalculate the buffer we can simplify that calculation. It 
+  is okay if it uses slightly more cycles.
+ 

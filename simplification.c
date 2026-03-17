@@ -1,76 +1,19 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <immintrin.h>
+#include <stdlib.h>
 
 #define FIZZBUZZ_LIMIT (1ULL << 32ULL)
 #define BUFFER_SIZE (256 * 1024)
 
-#define TEN_TO_THE_0  1ULL
-#define TEN_TO_THE_1  10ULL
-#define TEN_TO_THE_2  100ULL
-#define TEN_TO_THE_3  1000ULL
-#define TEN_TO_THE_4  10000ULL
-#define TEN_TO_THE_5  100000ULL
-#define TEN_TO_THE_6  1000000ULL
-#define TEN_TO_THE_7  10000000ULL
-#define TEN_TO_THE_8  100000000ULL
-#define TEN_TO_THE_9  1000000000ULL
-#define TEN_TO_THE_10 10000000000ULL
-#define TEN_TO_THE_11 100000000000ULL
-#define TEN_TO_THE_12 1000000000000ULL
-#define TEN_TO_THE_13 10000000000000ULL
-#define TEN_TO_THE_14 100000000000000ULL
-#define TEN_TO_THE_15 1000000000000000ULL
-#define TEN_TO_THE_16 10000000000000000ULL
-#define TEN_TO_THE_17 100000000000000000ULL
-#define TEN_TO_THE_18 1000000000000000000ULL
-#define TEN_TO_THE_19 10000000000000000000ULL
-
-static uint64_t THRESHOLDS[19] = {
-    TEN_TO_THE_1,
-    TEN_TO_THE_2,
-    TEN_TO_THE_3,
-    TEN_TO_THE_4,
-    TEN_TO_THE_5,
-    TEN_TO_THE_6,
-    TEN_TO_THE_7,
-    TEN_TO_THE_8,
-    TEN_TO_THE_9,
-    TEN_TO_THE_10,
-    TEN_TO_THE_11,
-    TEN_TO_THE_12,
-    TEN_TO_THE_13,
-    TEN_TO_THE_14,
-    TEN_TO_THE_15,
-    TEN_TO_THE_16,
-    TEN_TO_THE_17,
-    TEN_TO_THE_18,
-    TEN_TO_THE_19
-};
 
 static inline size_t calculate_number_of_decimals(uint64_t number) {
-    /* Since the range between 2^x and 2^(x+1) often uses the same number of 
-       digits, we can use the leading_zero_count and a lookup table to get the 
-       number of decimal digits very quickly. For ambigious cases there are 
-       only two possibilities which can be found by looking up the correct 
-       threshold and see if the number is below it. */
-    static char leading_zeros_to_number_of_decimals[65] = {
-        -19, 19, 19, 19, -18, 18, 18, -17, 17, 17, -16, 16, 16, 16, -15, 15,
-        15, -14, 14, 14, -13, 13, 13, 13, -12, 12, 12, -11, 11, 11, -10, 10,
-        10, 10, -9, 9, 9, -8, 8, 8, -7, 7, 7, 7, -6, 6, 6, -5, 5, 5, -4, 4, 4,
-        4, -3, 3, 3, -2, 2, 2, -1, 1, 1, 1, 1
-    };
-    size_t leading_zero_count = __lzcnt64(number);
-    char number_of_decimals = leading_zeros_to_number_of_decimals[leading_zero_count];
-    if (number_of_decimals > 0) {
-        return number_of_decimals;
+    size_t number_of_decimals = 0;
+    while (number) {
+        number = number / 10;
+        number_of_decimals += 1;
     }
-    size_t threshold_index = -number_of_decimals - 1;
-    if (number < THRESHOLDS[threshold_index]) {
-        return -number_of_decimals;
-    }
-    return -number_of_decimals + 1;
+    return number_of_decimals;
 }
 
 static size_t fizzbuzz(uint64_t start, uint64_t stop, char *buffer) {
