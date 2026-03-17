@@ -168,41 +168,6 @@ static void initialize_zero_to_9999(void) {
     }
 }
 
-static void initialize_unroll_template(
-    char *unroll_template, 
-    char *template_number, 
-    size_t number_of_digits
-) {
-        /* Using a fixed memcpy size avoids a function call. The largest 
-           integer is 20 digits in size.*/
-        char *cursor = unroll_template;
-        memcpy(unroll_template, template_number, 20);  // 1
-        unroll_template[number_of_digits] = '\n';
-        cursor += number_of_digits + 1;
-        memcpy(cursor, template_number, 20);  // 2
-        cursor += number_of_digits + 1;
-        memcpy(cursor, "Fizz\n", 5); // 3
-        cursor += 5;
-        memcpy(cursor, template_number, 20);  // 4
-        cursor += number_of_digits + 1;
-        memcpy(cursor, "Buzz\nFizz\n", 10);  // 5, 6
-        cursor += 10;
-        memcpy(cursor, template_number, 20);  // 7
-        cursor += number_of_digits + 1;
-        memcpy(cursor, template_number, 20);  // 8
-        cursor += number_of_digits + 1;
-        memcpy(cursor, "Fizz\nBuzz\n", 10);  // 9, 10
-        cursor += 10;
-        memcpy(cursor, template_number, 20);  // 11
-        cursor += number_of_digits + 1;
-        memcpy(cursor, "Fizz\n", 5); // 12
-        cursor += 5;
-        memcpy(cursor, template_number, 20);  // 13
-        cursor += number_of_digits + 1;
-        memcpy(cursor, template_number, 20);  // 14
-        cursor += number_of_digits + 1;
-        memcpy(cursor, "FizzBuzz\n", 9);  // 15
-}
 
 static inline uint64_t uint64_min(uint64_t a, uint64_t b) {
     if (a < b) {
@@ -268,7 +233,8 @@ static size_t fizzbuzz_memoized_unrolled(uint64_t start, uint64_t stop, char *re
     char *prefix = template_number;
     size_t prefix_length = number_of_decimals - 4;
 
-    /* First we roll up to the point where we can start unrolling the loop. */
+    /* First we roll up to the point where we can start unrolling the loop. 
+    */
     static uint8_t iterations[15] = {1, 0, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 
         4, 3, 2};
     size_t align_count = iterations[start % 15];
@@ -276,10 +242,9 @@ static size_t fizzbuzz_memoized_unrolled(uint64_t start, uint64_t stop, char *re
 
     size_t buffer_size = fizzbuzz_memoized(
         start, align_stop, 0, prefix, prefix_length, buffer);;
+    size_t index = align_count;
 
-    /* Template the fizzes and buzzes and numbers. In the unroll loop we 
-       will only replace the last digits. 
-       The largest template will need will have 8 numbers with size of 20,
+    /* The largest template will need will have 8 numbers with size of 20,
        5 fizzes, 3 buzzes (including fizzbuzz) and 15 newlines. This equals
        8*20 + 5*4 + 3*4 + 15 = 160 + 20 + 12 + 15 = 207. We make the template
        208 units because that is equal to 13 * 16 and the compiler can use
@@ -288,7 +253,8 @@ static size_t fizzbuzz_memoized_unrolled(uint64_t start, uint64_t stop, char *re
        is constant for each loop.
        */
     char unroll_template[208];
-    initialize_unroll_template(unroll_template, template_number, number_of_decimals);
+    fizzbuzz_memoized(align_stop, align_stop + 16, index, prefix, 
+        prefix_length, unroll_template);
     size_t unroll_template_size = 8 * number_of_decimals + 8 * 4 + 15;
     /* For each offset, number of preceding numbers times length, number
        off fizzes/buzzes times 4 and number of newline characters + 
@@ -302,7 +268,7 @@ static size_t fizzbuzz_memoized_unrolled(uint64_t start, uint64_t stop, char *re
     size_t offset13 = 6 * number_of_decimals + 6 * 4 + 12 + prefix_length;
     size_t offset14 = 7 * number_of_decimals + 6 * 4 + 13 + prefix_length;
     
-    size_t index = align_count;
+ 
     size_t i = align_stop;
     /*This is the hot loop where most of the work happens */
     uint64_t unroll_stop = stop - 14;
