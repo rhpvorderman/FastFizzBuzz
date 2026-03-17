@@ -130,3 +130,13 @@ program in 1.8 seconds. That equates to more than 16 GB/s. Quite great.
 That is better than the best single-threaded result I saw online when I did
 a quick scan before I started this challenge. But still, there could be 
 much better implementations out there.
+
+# Going up to ten thousand.
+
+With the larger buffers, the code is very fast, but we only spend 66 iterations
+in the fast loop. So we increase the chunks 
+[from 1000 to 10000](./ten_thousand.c). Now we spend around 666 iterations in 
+the fast loop. Interestingly, this does not do much. It reduces runtime from
+1.8 to 1.7 seconds. Still a meaningful percentage, but not that much faster.
+ On the other hand, since so much time is now spent in the loop rather than 
+ outside it maybe we can do some...
