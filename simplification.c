@@ -73,59 +73,6 @@ static inline size_t calculate_number_of_decimals(uint64_t number) {
     return -number_of_decimals + 1;
 }
 
-static int write_number(uint64_t number, size_t number_of_decimals, char *restrict buffer) {
-    if (number_of_decimals > 20) {
-        return -1;
-    }
-    /* All the statements below are independent. As a result it should be easy
-       for the CPU to pipeline them. */    
-    switch (number_of_decimals) {
-        case 20:
-            buffer[number_of_decimals - 20] = (number / TEN_TO_THE_19) + '0';
-        case 19:
-            buffer[number_of_decimals - 19] = (number / TEN_TO_THE_18) % 10 + '0';
-        case 18:
-            buffer[number_of_decimals - 18] = (number / TEN_TO_THE_17) % 10 + '0';
-        case 17:
-            buffer[number_of_decimals - 17] = (number / TEN_TO_THE_16) % 10 + '0';
-        case 16:
-            buffer[number_of_decimals - 16] = (number / TEN_TO_THE_15) % 10 + '0';
-        case 15:
-            buffer[number_of_decimals - 15] = (number / TEN_TO_THE_14) % 10 + '0';
-        case 14:
-            buffer[number_of_decimals - 14] = (number / TEN_TO_THE_13) % 10 + '0';
-        case 13:
-            buffer[number_of_decimals - 13] = (number / TEN_TO_THE_12) % 10 + '0';
-        case 12:
-            buffer[number_of_decimals - 12] = (number / TEN_TO_THE_11) % 10 + '0';
-        case 11:
-            buffer[number_of_decimals - 11] = (number / TEN_TO_THE_10) % 10 + '0';
-        case 10:
-            buffer[number_of_decimals - 10] = (number / TEN_TO_THE_9) % 10 + '0';
-        case 9:
-            buffer[number_of_decimals - 9] = (number / TEN_TO_THE_8) % 10 + '0';
-        case 8:
-            buffer[number_of_decimals - 8] = (number / TEN_TO_THE_7) % 10 + '0';
-        case 7:
-            buffer[number_of_decimals - 7] = (number / TEN_TO_THE_6) % 10 + '0';
-        case 6:
-            buffer[number_of_decimals - 6] = (number / TEN_TO_THE_5) % 10 + '0';
-        case 5:
-            buffer[number_of_decimals - 5] = (number / TEN_TO_THE_4) % 10 + '0';
-        case 4:
-            buffer[number_of_decimals - 4] = (number / TEN_TO_THE_3) % 10 + '0';
-        case 3:
-            buffer[number_of_decimals - 3] = (number / TEN_TO_THE_2) % 10 + '0';
-        case 2:
-            buffer[number_of_decimals - 2] = (number / TEN_TO_THE_1) % 10 + '0';
-        case 1:
-            buffer[number_of_decimals - 1] = (number / TEN_TO_THE_0) % 10 + '0';
-        case 0:
-            buffer[number_of_decimals] = '\n';
-    }
-    return number_of_decimals + 1;
-}
-
 static size_t fizzbuzz(uint64_t start, uint64_t stop, char *buffer) {
     size_t buffer_size = 0;
     for (uint64_t i=start; i < stop; i++) {
@@ -143,8 +90,7 @@ static size_t fizzbuzz(uint64_t start, uint64_t stop, char *buffer) {
             buffer_size += 5;
         }
         else {
-            size_t number_of_decimals = calculate_number_of_decimals(i);
-            buffer_size += write_number(i, number_of_decimals, buffer + buffer_size);
+            buffer_size += sprintf(buffer+buffer_size, "%lu\n", i);
         }
     }   
     return buffer_size;
@@ -227,9 +173,8 @@ static size_t fizzbuzz_memoized_unrolled(uint64_t start, uint64_t stop, char *re
         );
         exit(1);
     }
-    size_t number_of_decimals = calculate_number_of_decimals(start);
     char template_number[21];
-    write_number(start, number_of_decimals, template_number);
+    size_t number_of_decimals = sprintf(template_number, "%lu", start);
     char *prefix = template_number;
     size_t prefix_length = number_of_decimals - 4;
 

@@ -144,4 +144,9 @@ the fast loop. Interestingly, this does not do much. It reduces runtime from
 # Simplification
 
 - First break out the little alignment loops at the beginning and end of
-  the unroll function. These van be fulfilled by the same function.
+  the unroll function. These can be fulfilled by the same function.
+- Remove the templating function as this can also be performed by simply 
+  running fizzbuzz.
+- Since we only create a template number once every ten thousand times, 
+  `sprintf` can be used instead. This hardly slows down the program and 
+  the write_number function can be removed.
