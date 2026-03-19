@@ -155,3 +155,94 @@ the fast loop. Interestingly, this does not do much. It reduces runtime from
   function to precalculate the buffer we can simplify that calculation. It 
   is okay if it uses slightly more cycles.
  
+ [These changes](./simplification.c) saved 120 lines of code out of 360. 
+ Not too shabby. Let us look for further optimizations.
+
+ # Further optimization opportunities.
+
+ Most of the work happens in the following loop:
+
+ ```C
+    /*This is the hot loop where most of the work happens */
+    uint64_t unroll_stop = stop - 14;
+    for (; i<unroll_stop; i+=15 ) {
+        char *restrict cursor = buffer + buffer_size;
+        /* Fixed size memcpy faster than function call */
+        memcpy(cursor, unroll_template, sizeof(unroll_template));
+        memcpy(cursor + offset1,  zero_to_9999 + ((index +  0) * 4), 4);
+        memcpy(cursor + offset2,  zero_to_9999 + ((index +  1) * 4), 4);
+        memcpy(cursor + offset4,  zero_to_9999 + ((index +  3) * 4), 4);
+        memcpy(cursor + offset7,  zero_to_9999 + ((index +  6) * 4), 4);
+        memcpy(cursor + offset8,  zero_to_9999 + ((index +  7) * 4), 4);
+        memcpy(cursor + offset11, zero_to_9999 + ((index + 10) * 4), 4);
+        memcpy(cursor + offset13, zero_to_9999 + ((index + 12) * 4), 4);
+        memcpy(cursor + offset14, zero_to_9999 + ((index + 13) * 4), 4);
+        cursor += 15;
+        index += 15;
+        buffer_size += unroll_template_size;
+    }
+    /* End of hot loop. */
+ ```
+ Size of unroll template is 208 bytes. The maximum length of fizzbuzz given 
+ a 64 bit unsigned integer is 8 numbers of length 20, 4 times fuzz, 2 times buzz
+ one time fizzbuzz and 15 newlines. That adds up to 207 characters. 208 is 
+ used because that is a multiple of 16. 
+ 
+ So first a template is pasted in the buffer. Then the number positions are 
+ updated. 
+
+ Let's look at the assembly:
+ ```assembly
+.L34:
+        mov     r15d, DWORD PTR zero_to_9999[0+rbp*4]
+        movups  XMMWORD PTR [rbx], xmm12
+        add     r12, 15
+        mov     r14, rbx
+        movups  XMMWORD PTR [rbx+16], xmm11
+        movups  XMMWORD PTR [rbx+32], xmm10
+        movups  XMMWORD PTR [rbx+48], xmm9
+        movups  XMMWORD PTR [rbx+64], xmm8
+        movups  XMMWORD PTR [rbx+80], xmm7
+        movups  XMMWORD PTR [rbx+96], xmm6
+        movups  XMMWORD PTR [rbx+112], xmm5
+        movups  XMMWORD PTR [rbx+128], xmm4
+        movups  XMMWORD PTR [rbx+144], xmm3
+        movups  XMMWORD PTR [rbx+160], xmm2
+        movups  XMMWORD PTR [rbx+176], xmm1
+        movups  XMMWORD PTR [rbx+192], xmm0
+        mov     DWORD PTR [rbx-4+r13], r15d
+        mov     r15d, DWORD PTR zero_to_9999[4+rbp*4]
+        mov     DWORD PTR [rbx+r11], r15d
+        mov     r15d, DWORD PTR zero_to_9999[12+rbp*4]
+        mov     DWORD PTR [rbx+7+r8], r15d
+        mov     r15d, DWORD PTR zero_to_9999[24+rbp*4]
+        mov     DWORD PTR [rbx+18+rdi], r15d
+        mov     r15d, DWORD PTR zero_to_9999[28+rbp*4]
+        mov     DWORD PTR [rbx+19+rsi], r15d
+        mov     r15d, DWORD PTR zero_to_9999[40+rbp*4]
+        mov     DWORD PTR [rbx+30+rcx], r15d
+        mov     r15d, DWORD PTR zero_to_9999[48+rbp*4]
+        mov     DWORD PTR [rbx+36+rdx], r15d
+        mov     r15d, DWORD PTR zero_to_9999[52+rbp*4]
+        add     rbp, 15
+        mov     DWORD PTR [rbx+37+r10], r15d
+        add     rbx, rax
+        cmp     r12, r9
+        jb      .L34
+ ```
+So as stated in the comment, memcpy with a fixed constant is optimized. In fact,
+GCC has saved all of the template in xmm0 up to xmm12. 13 registers of each
+16 bytes (13 * 16 = 208). Since the vector registers are not used elsewhere it
+can simply store the data in there and only perform a write operation on each
+loop, without having to perform a read operation. Very efficient!
+
+The following code calculates an addres in the r15d register and moves a 
+value in there that is captured by a lookup. 
+
+I am a bit annoyed by the templating always overshooting, but that is needed
+to support the longest integers and just 13 movups instructions is not going 
+to be more costly than a memcpy call with an arbitrary length. 
+memcpy with a very long length can be very efficient though, as it can use
+avx2 vectors which are present on this machine. However filling up the buffer
+that way and then writing on it all over again does not feel like it will
+provide a great benefit because of cache eviction.
