@@ -246,3 +246,59 @@ memcpy with a very long length can be very efficient though, as it can use
 avx2 vectors which are present on this machine. However filling up the buffer
 that way and then writing on it all over again does not feel like it will
 provide a great benefit because of cache eviction.
+
+# Finding a better way.
+
+There has to be a better way. And there is. Currently we are taking a little
+template of one round of fizzbuzz and templating out the last digits. 
+The last digits are constantly changing so we have to look them up.
+
+This is however not efficient. It is much better to use the last digits as 
+template and replace the first digits. The first digits hardly ever change...
+
+So we can create a prefilled buffer with 10000 numbers, so at least 666 rounds
+of fizzbuzz. Then we just update the prefix with a single number. We can
+then keep reusing the buffer.
+
+- A single call to efficient memcpy.
+- Only replace a single constant at the 8 positions each round. 
+
+Unfortunately because there is a modulo 3 involved, the pattern does not 
+repeat every 10000 numbers but it does every 30000 numbers. On the other hand
+for the code to be correct decimal number templating works only on powers of 10. 
+
+Luckily this problem can be fixed. There are only three ways to fill up a
+buffer with fizzbuzz starting at an arbitrary multiplication of 10000. 
+
+1. We start at the equivalent of 0. Fizzbuzz. And then 1, 2, fizz, 4, buzz, 
+  fizz, etc. Doing 666 rounds of 15 that way we end up at 9991. We do another 9 
+  numbers and then We then end up at the next spot.
+2. Starting at the equivalent of 10. So buzz, 11, fizz, 13, 14, fizzbuzz. 
+  After that we can go on until This will go on until 9996. Then we do another
+  four numbers and up at the next pot. 
+3. Starting at the equivalent of 5. So buzz, fizz, 7, 8, fizz, buzz, 11 etc. 
+  After 10 more numbers we start at the first 1 again. Then we go on for 9990
+  entries and end up where we started. 
+
+Since these three configurations are all there is, we can keep around three 
+buffers and keep reusing them. That way we can do a very fast templating and
+this should be the fastest implementation of fizzbuzz. I can't see how
+the algorithm can be any more efficient in terms of doing the least amount of
+work possible. 
+
+For instance, if we template out the last 4 digits and use a 32 bit integer
+move for templating the first digits, we can start when the number reaches
+8 digits (so at 10_000_000). We template out the last 0000 to 9999. Then we
+create three buffers, one starting at 1000_0000 one at 1001_0000 and one at
+1002_0000. That requires us to fully calculate fizzbuzz for 30_000 numbers if
+we use a naive implementation for that. Then for 1003_0000 we can take the 
+1000_0000 buffer, and simply replace all the starting 1000 with 1003, because
+we know the positions of the numbers before hand. This process can go on
+until we go beyond 9999_9999. So from 1000_0000 to 9999_9999 or 10_000_000 to
+99_999_999 for readability. We have done 90 million numbers, with just 30_000
+fizzbuzz calculations. That is one actual calculation per 3000. And that is
+if we use calculations to fill up the buffers. We could also use memoized 
+templating for that too. 
+
+In other words, it can hardly be more efficient. It this point it is just an 
+exercise in writing the best implementation.
