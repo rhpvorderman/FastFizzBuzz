@@ -213,17 +213,17 @@ static void FizzBuzzTemplate_initialize(FizzBuzzTemplate *fizzbuzz_template, uin
             fizzbuzz_template->number_of_pre_unroll_offsets = 5;
             fizzbuzz_template->pre_unroll_offsets[0] = 2 * 5 + 0 * (number_of_digits + 1); // 7 
             fizzbuzz_template->pre_unroll_offsets[1] = 2 * 5 + 1 * (number_of_digits + 1); // 8
-            fizzbuzz_template->pre_unroll_offsets[1] = 4 * 5 + 2 * (number_of_digits + 1); // 11
-            fizzbuzz_template->pre_unroll_offsets[1] = 5 * 5 + 3 * (number_of_digits + 1); // 13
-            fizzbuzz_template->pre_unroll_offsets[1] = 5 * 5 + 4 * (number_of_digits + 1); // 14
+            fizzbuzz_template->pre_unroll_offsets[2] = 4 * 5 + 2 * (number_of_digits + 1); // 11
+            fizzbuzz_template->pre_unroll_offsets[3] = 5 * 5 + 3 * (number_of_digits + 1); // 13
+            fizzbuzz_template->pre_unroll_offsets[4] = 5 * 5 + 4 * (number_of_digits + 1); // 14
             fizzbuzz_template->offset_to_unroll = 5 * 5 + 5 * (number_of_digits + 1) + 9; // FizzBuzz
             break;
         case 10:
             // buzz, 11, fizz, 13, 14, fizzbuzz
             fizzbuzz_template->number_of_pre_unroll_offsets = 3;
-            fizzbuzz_template->pre_unroll_offsets[1] = 1 * 5 + 0 * (number_of_digits + 1); // 11
+            fizzbuzz_template->pre_unroll_offsets[0] = 1 * 5 + 0 * (number_of_digits + 1); // 11
             fizzbuzz_template->pre_unroll_offsets[1] = 2 * 5 + 1 * (number_of_digits + 1); // 13
-            fizzbuzz_template->pre_unroll_offsets[1] = 2 * 5 + 2 * (number_of_digits + 1); // 14
+            fizzbuzz_template->pre_unroll_offsets[2] = 2 * 5 + 2 * (number_of_digits + 1); // 14
             fizzbuzz_template->offset_to_unroll = 2 * 5 + 3 * (number_of_digits + 1) + 9; // FizzBuzz
             break;
         default:
@@ -272,12 +272,64 @@ static size_t FizzBuzzTemplate_apply_by4(
     
     /* Roll up to the point beyond the first FizzBuzz */
     for (size_t i=0; i < fizzbuzz_template->number_of_pre_unroll_offsets; i++) {
+        size_t offset = fizzbuzz_template->pre_unroll_offsets[i] + prefix_length;
+        memcpy(buffer + offset, replace_chars, 4);
     }
 
     /* Template everything else. We do 667 loops here so there is overshoot. 
        This makes the logic a bit simpler and the compiler can unroll a bit 
        since the number of iterations is known.
     */
+    buffer += fizzbuzz_template->offset_to_unroll;
+    size_t offset0 = fizzbuzz_template->unroll_offsets[0] + prefix_length;
+    size_t offset1 = fizzbuzz_template->unroll_offsets[1] + prefix_length;
+    size_t offset2 = fizzbuzz_template->unroll_offsets[2] + prefix_length;
+    size_t offset3 = fizzbuzz_template->unroll_offsets[3] + prefix_length;
+    size_t offset4 = fizzbuzz_template->unroll_offsets[4] + prefix_length;
+    size_t offset5 = fizzbuzz_template->unroll_offsets[5] + prefix_length;
+    size_t offset6 = fizzbuzz_template->unroll_offsets[6] + prefix_length;
+    size_t offset7 = fizzbuzz_template->unroll_offsets[7] + prefix_length;
+    size_t unroll_length = fizzbuzz_template->unroll_length;
+    for(size_t i=0; i<667; i++) {
+        char *restrict cursor = buffer + i * unroll_length;
+        memcpy(cursor + offset0, replace_chars, 4);
+        memcpy(cursor + offset1, replace_chars, 4);
+        memcpy(cursor + offset2, replace_chars, 4);
+        memcpy(cursor + offset3, replace_chars, 4);
+        memcpy(cursor + offset4, replace_chars, 4);
+        memcpy(cursor + offset5, replace_chars, 4);
+        memcpy(cursor + offset6, replace_chars, 4);
+        memcpy(cursor + offset7, replace_chars, 4);
+    }
+    return fizzbuzz_template->template_size;
+}
+
+static size_t fizzbuzz_templated_10000(
+    uint64_t start, 
+    FizzBuzzTemplate *fizzbuzz_templates,
+    char *restrict buffer) {
+    if (start < 10000000 || start % 10000 != 0) {
+        fprintf(
+            stderr, 
+            "Assumption for templating broken, start must be greater "
+            "than 10 000 000, divisible by "
+            "10 000\n"
+            "Start: %lu; ", start
+        );
+        exit(1);
+    }
+    size_t template_index = start % 15; 
+    if (template_index != 0 && template_index != 5 && template_index != 10) {
+        fprintf(stderr, "invalid template index: %lu, start: %lu", template_index, start);
+    }
+    template_index /= 5;
+    FizzBuzzTemplate *template = fizzbuzz_templates + template_index;
+    /* We template out four digits before the last four digits. */
+    if (start / 10000000 != template->templated_from / 10000000 || 
+        template->templated_from == 0) {
+        FizzBuzzTemplate_initialize(template, start);
+    }
+    return FizzBuzzTemplate_apply_by4(template, start, buffer);
 }
 
 
@@ -297,7 +349,8 @@ int main() {
         return 0;
     }
     buffer_size = 0;
-    while (start < end) {
+    uint64_t end2 = uint64_min(10000000, end);
+    while (start < end2) {
         size_t number_of_digits = calculate_number_of_decimals(start);
         /* Estimate the output volume on the buffer. Every 15 units we make 
            a full round. That is 8 fizzes/buzzes. 8 numbers and 15 newlines.
@@ -312,6 +365,24 @@ int main() {
         buffer_size += fizzbuzz_memoized_unrolled(start, stop, buffer + buffer_size);
         start = stop;
     }
+    fwrite(buffer, 1, buffer_size, stdout);
+    fflush(stdout);
+    buffer_size = 0;
+    FizzBuzzTemplate fizzbuzz_templates[3];
+    memset(fizzbuzz_templates, 0, sizeof(FizzBuzzTemplate) * 3);
+    while (start < end - 10000) {
+        size_t number_of_digits = calculate_number_of_decimals(start);
+        size_t estimated_output_size = 667 * (8 * 4 + 8 * number_of_digits + 15) + 208;
+        if (buffer_size + estimated_output_size > BUFFER_SIZE) {
+            fwrite(buffer, 1, buffer_size, stdout);
+            buffer_size = 0;
+        }
+        buffer_size += fizzbuzz_templated_10000(start, fizzbuzz_templates, buffer + buffer_size);
+        start += 10000; 
+    }
+    fwrite(buffer, 1, buffer_size, stdout);
+    fflush(stdout);
+    buffer_size = fizzbuzz(start, end, buffer);
     fwrite(buffer, 1, buffer_size, stdout);
     fflush(stdout);
     return 0;
