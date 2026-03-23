@@ -302,3 +302,27 @@ templating for that too.
 
 In other words, it can hardly be more efficient. It this point it is just an 
 exercise in writing the best implementation.
+
+# The better way.
+
+After implementing the big templates [here](./prefixreplacement.c) the
+improvement turned out to be not so great. Instead of 1.6ish seconds to 
+completion, now it takes 1.3ish seconds. However there is a yet better way.
+In this implementation I made it easier for myself by using `memcpy` to 
+template out the template to the buffer and then to the replacement of the 
+prefixes.
+
+However, this memcpy template is not really needed. Since the same positions
+are updated everytime, also a run of 30000 can be templated to the output 
+buffer and the updates can run in the output buffer exclusively. No memcpy 
+required. This however makes the logic more difficult. So I did not do that 
+initially. However, I can benchmark the potential benefit by commenting out
+the call to memcpy, the output will be garbage, but it will be the same size.
+
+600 milliseconds. That is more than twice as good, so I have to go on. I'd 
+rather call it a day it this point, but since it can be faster, it must be!
+
+By the way I also benchmarked disabling the number replacement instead. 
+Also 600 milliseconds. So that shows me that the algorithm (memcpy vs 
+replacement) is not important here and that we are truly bound by cache or 
+memory speeds. 
