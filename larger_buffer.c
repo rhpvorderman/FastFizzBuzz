@@ -49,81 +49,81 @@ static uint64_t THRESHOLDS[19] = {
     TEN_TO_THE_19
 };
 
-static inline size_t calculate_number_of_decimals(uint64_t number) {
+static inline size_t calculate_number_of_digits(uint64_t number) {
     /* Since the range between 2^x and 2^(x+1) often uses the same number of 
        digits, we can use the leading_zero_count and a lookup table to get the 
        number of decimal digits very quickly. For ambigious cases there are 
        only two possibilities which can be found by looking up the correct 
        threshold and see if the number is below it. */
-    static char leading_zeros_to_number_of_decimals[65] = {
+    static char leading_zeros_to_number_of_digits[65] = {
         -19, 19, 19, 19, -18, 18, 18, -17, 17, 17, -16, 16, 16, 16, -15, 15,
         15, -14, 14, 14, -13, 13, 13, 13, -12, 12, 12, -11, 11, 11, -10, 10,
         10, 10, -9, 9, 9, -8, 8, 8, -7, 7, 7, 7, -6, 6, 6, -5, 5, 5, -4, 4, 4,
         4, -3, 3, 3, -2, 2, 2, -1, 1, 1, 1, 1
     };
     size_t leading_zero_count = __lzcnt64(number);
-    char number_of_decimals = leading_zeros_to_number_of_decimals[leading_zero_count];
-    if (number_of_decimals > 0) {
-        return number_of_decimals;
+    char number_of_digits = leading_zeros_to_number_of_digits[leading_zero_count];
+    if (number_of_digits > 0) {
+        return number_of_digits;
     }
-    size_t threshold_index = -number_of_decimals - 1;
+    size_t threshold_index = -number_of_digits - 1;
     if (number < THRESHOLDS[threshold_index]) {
-        return -number_of_decimals;
+        return -number_of_digits;
     }
-    return -number_of_decimals + 1;
+    return -number_of_digits + 1;
 }
 
-static int write_number(uint64_t number, size_t number_of_decimals, char *restrict buffer) {
-    if (number_of_decimals > 20) {
+static int write_number(uint64_t number, size_t number_of_digits, char *restrict buffer) {
+    if (number_of_digits > 20) {
         return -1;
     }
     /* All the statements below are independent. As a result it should be easy
        for the CPU to pipeline them. */    
-    switch (number_of_decimals) {
+    switch (number_of_digits) {
         case 20:
-            buffer[number_of_decimals - 20] = (number / TEN_TO_THE_19) + '0';
+            buffer[number_of_digits - 20] = (number / TEN_TO_THE_19) + '0';
         case 19:
-            buffer[number_of_decimals - 19] = (number / TEN_TO_THE_18) % 10 + '0';
+            buffer[number_of_digits - 19] = (number / TEN_TO_THE_18) % 10 + '0';
         case 18:
-            buffer[number_of_decimals - 18] = (number / TEN_TO_THE_17) % 10 + '0';
+            buffer[number_of_digits - 18] = (number / TEN_TO_THE_17) % 10 + '0';
         case 17:
-            buffer[number_of_decimals - 17] = (number / TEN_TO_THE_16) % 10 + '0';
+            buffer[number_of_digits - 17] = (number / TEN_TO_THE_16) % 10 + '0';
         case 16:
-            buffer[number_of_decimals - 16] = (number / TEN_TO_THE_15) % 10 + '0';
+            buffer[number_of_digits - 16] = (number / TEN_TO_THE_15) % 10 + '0';
         case 15:
-            buffer[number_of_decimals - 15] = (number / TEN_TO_THE_14) % 10 + '0';
+            buffer[number_of_digits - 15] = (number / TEN_TO_THE_14) % 10 + '0';
         case 14:
-            buffer[number_of_decimals - 14] = (number / TEN_TO_THE_13) % 10 + '0';
+            buffer[number_of_digits - 14] = (number / TEN_TO_THE_13) % 10 + '0';
         case 13:
-            buffer[number_of_decimals - 13] = (number / TEN_TO_THE_12) % 10 + '0';
+            buffer[number_of_digits - 13] = (number / TEN_TO_THE_12) % 10 + '0';
         case 12:
-            buffer[number_of_decimals - 12] = (number / TEN_TO_THE_11) % 10 + '0';
+            buffer[number_of_digits - 12] = (number / TEN_TO_THE_11) % 10 + '0';
         case 11:
-            buffer[number_of_decimals - 11] = (number / TEN_TO_THE_10) % 10 + '0';
+            buffer[number_of_digits - 11] = (number / TEN_TO_THE_10) % 10 + '0';
         case 10:
-            buffer[number_of_decimals - 10] = (number / TEN_TO_THE_9) % 10 + '0';
+            buffer[number_of_digits - 10] = (number / TEN_TO_THE_9) % 10 + '0';
         case 9:
-            buffer[number_of_decimals - 9] = (number / TEN_TO_THE_8) % 10 + '0';
+            buffer[number_of_digits - 9] = (number / TEN_TO_THE_8) % 10 + '0';
         case 8:
-            buffer[number_of_decimals - 8] = (number / TEN_TO_THE_7) % 10 + '0';
+            buffer[number_of_digits - 8] = (number / TEN_TO_THE_7) % 10 + '0';
         case 7:
-            buffer[number_of_decimals - 7] = (number / TEN_TO_THE_6) % 10 + '0';
+            buffer[number_of_digits - 7] = (number / TEN_TO_THE_6) % 10 + '0';
         case 6:
-            buffer[number_of_decimals - 6] = (number / TEN_TO_THE_5) % 10 + '0';
+            buffer[number_of_digits - 6] = (number / TEN_TO_THE_5) % 10 + '0';
         case 5:
-            buffer[number_of_decimals - 5] = (number / TEN_TO_THE_4) % 10 + '0';
+            buffer[number_of_digits - 5] = (number / TEN_TO_THE_4) % 10 + '0';
         case 4:
-            buffer[number_of_decimals - 4] = (number / TEN_TO_THE_3) % 10 + '0';
+            buffer[number_of_digits - 4] = (number / TEN_TO_THE_3) % 10 + '0';
         case 3:
-            buffer[number_of_decimals - 3] = (number / TEN_TO_THE_2) % 10 + '0';
+            buffer[number_of_digits - 3] = (number / TEN_TO_THE_2) % 10 + '0';
         case 2:
-            buffer[number_of_decimals - 2] = (number / TEN_TO_THE_1) % 10 + '0';
+            buffer[number_of_digits - 2] = (number / TEN_TO_THE_1) % 10 + '0';
         case 1:
-            buffer[number_of_decimals - 1] = (number / TEN_TO_THE_0) % 10 + '0';
+            buffer[number_of_digits - 1] = (number / TEN_TO_THE_0) % 10 + '0';
         case 0:
-            buffer[number_of_decimals] = '\n';
+            buffer[number_of_digits] = '\n';
     }
-    return number_of_decimals + 1;
+    return number_of_digits + 1;
 }
 
 static size_t fizzbuzz(uint64_t start, uint64_t stop, char *buffer) {
@@ -143,8 +143,8 @@ static size_t fizzbuzz(uint64_t start, uint64_t stop, char *buffer) {
             buffer_size += 5;
         }
         else {
-            size_t number_of_decimals = calculate_number_of_decimals(i);
-            buffer_size += write_number(i, number_of_decimals, buffer + buffer_size);
+            size_t number_of_digits = calculate_number_of_digits(i);
+            buffer_size += write_number(i, number_of_digits, buffer + buffer_size);
         }
     }   
     return buffer_size;
@@ -226,12 +226,12 @@ static size_t fizzbuzz_memoized(uint64_t start, uint64_t stop, char *restrict bu
         );
         exit(1);
     }
-    size_t number_of_decimals = calculate_number_of_decimals(start);
+    size_t number_of_digits = calculate_number_of_digits(start);
     size_t buffer_size = 0;
     char template_number[21];
-    write_number(start, number_of_decimals, template_number);
+    write_number(start, number_of_digits, template_number);
     char *prefix = template_number;
-    size_t prefix_length = number_of_decimals - 3;
+    size_t prefix_length = number_of_digits - 3;
     
     /* Template the fizzes and buzzes and numbers. In the unroll loop we 
        will only replace the last digits. 
@@ -244,19 +244,19 @@ static size_t fizzbuzz_memoized(uint64_t start, uint64_t stop, char *restrict bu
        is constant for each loop.
        */
     char unroll_template[208];
-    initialize_unroll_template(unroll_template, template_number, number_of_decimals);
-    size_t unroll_template_size = 8 * number_of_decimals + 8 * 4 + 15;
+    initialize_unroll_template(unroll_template, template_number, number_of_digits);
+    size_t unroll_template_size = 8 * number_of_digits + 8 * 4 + 15;
     /* For each offset, number of preceding numbers times length, number
        off fizzes/buzzes times 4 and number of newline characters + 
        prefix length. */
-    size_t offset1  = 0 * number_of_decimals + 0 * 4 +  0 + prefix_length; 
-    size_t offset2  = 1 * number_of_decimals + 0 * 4 +  1 + prefix_length;
-    size_t offset4  = 2 * number_of_decimals + 1 * 4 +  3 + prefix_length;
-    size_t offset7  = 3 * number_of_decimals + 3 * 4 +  6 + prefix_length;
-    size_t offset8  = 4 * number_of_decimals + 3 * 4 +  7 + prefix_length;
-    size_t offset11 = 5 * number_of_decimals + 5 * 4 + 10 + prefix_length;
-    size_t offset13 = 6 * number_of_decimals + 6 * 4 + 12 + prefix_length;
-    size_t offset14 = 7 * number_of_decimals + 6 * 4 + 13 + prefix_length;
+    size_t offset1  = 0 * number_of_digits + 0 * 4 +  0 + prefix_length; 
+    size_t offset2  = 1 * number_of_digits + 0 * 4 +  1 + prefix_length;
+    size_t offset4  = 2 * number_of_digits + 1 * 4 +  3 + prefix_length;
+    size_t offset7  = 3 * number_of_digits + 3 * 4 +  6 + prefix_length;
+    size_t offset8  = 4 * number_of_digits + 3 * 4 +  7 + prefix_length;
+    size_t offset11 = 5 * number_of_digits + 5 * 4 + 10 + prefix_length;
+    size_t offset13 = 6 * number_of_digits + 6 * 4 + 12 + prefix_length;
+    size_t offset14 = 7 * number_of_digits + 6 * 4 + 13 + prefix_length;
     size_t index = 0;
     size_t i = start;
     while (i < stop && i % 15 != 1) {
@@ -345,7 +345,7 @@ int main() {
     }
     buffer_size = 0;
     while (start < end) {
-        size_t number_of_digits = calculate_number_of_decimals(start);
+        size_t number_of_digits = calculate_number_of_digits(start);
         /* Estimate the output volume on the buffer. Every 15 units we make 
            a full round. That is 8 fizzes/buzzes. 8 numbers and 15 newlines.
            There are 67 of these rounds in a 1000. We add 208 because that is the size

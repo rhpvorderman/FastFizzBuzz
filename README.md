@@ -46,23 +46,23 @@ that can do just that.
   to be. Since we increment, we can simply track the number of digits, and
   increase these once a treshold is hit. 
 
-By doing it fairly naively, converting one decimal at the time and making sure
- the decimals are known beforehand the code becomes 
+By doing it fairly naively, converting one digit at the time and making sure
+ the digits are known beforehand the code becomes 
  [a bit larger](./number_conversion.c), but now speeds of 1GiB/s are reached!
 
  Since we are now running in the speed limits of MD5SUM to verify we will use 
  xxh128sum instead. The number to look for is 89376fe05131799159c9907addd39b66.
 
-# Uncouple number of decimal calculation
+# Uncouple number of digit calculation
 Since the range between 2^8 (256) and 2^9 (512) holds the same number of 
-decimals we can use this fact to create a quick number of decimal calculation.
+digits we can use this fact to create a quick number of digit calculation.
 Simply use the leading zero count and we know the most significant bit. Then
 we can use a lookup table in order to get the correct number of digits. In
 ambiguous cases (2^9 is 512 and numbers with the 9th bit set go up to 1023) 
 we check if the number exceeds the threshold. Since there is only one threshold
 per ambigious case this check is quite fast. 
 
-This is [done here](./number_of_decimal_calculation.c). The advantage of doing
+This is [done here](./number_of_digit_calculation.c). The advantage of doing
 this is that we can make the loop a bit simpler. The disadvantage is that
 it is slightly slower (by 1-2%) but since this calculation allows is to
 determine the number of digits at any point without having to track it this
@@ -265,7 +265,7 @@ then keep reusing the buffer.
 
 Unfortunately because there is a modulo 3 involved, the pattern does not 
 repeat every 10000 numbers but it does every 30000 numbers. On the other hand
-for the code to be correct decimal number templating works only on powers of 10. 
+for the code to be correct digit number templating works only on powers of 10. 
 
 Luckily this problem can be fixed. There are only three ways to fill up a
 buffer with fizzbuzz starting at an arbitrary multiplication of 10000. 
@@ -348,7 +348,7 @@ GiB/s. We got there in the following steps:
 1. Use a [simple implementation](./reference.c) of fizzbuzz using printf
 2. Upgrade to a [buffered version](./buffered.c) using sprintf
 3. Create [custom number printing code](./number_conversion.c)
-4. Add [a function](./number_of_decimal_calculation.c) to quickly calculate 
+4. Add [a function](./number_of_digit_calculation.c) to quickly calculate 
   the number of digits. 
 5. [Uncouple buffer](./uncouple_buffer.c) calculation from fizzbuzz main loop.
 6. [Memoize](./memoization.c) the last 3 digits and only calculate the preceding

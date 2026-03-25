@@ -30,13 +30,13 @@ static inline uint64_t uint64_min(uint64_t a, uint64_t b) {
     return b;
 }
 
-static inline size_t calculate_number_of_decimals(uint64_t number) {
-    size_t number_of_decimals = 0;
+static inline size_t calculate_number_of_digits(uint64_t number) {
+    size_t number_of_digits = 0;
     while (number) {
         number = number / 10;
-        number_of_decimals += 1;
+        number_of_digits += 1;
     }
-    return number_of_decimals;
+    return number_of_digits;
 }
 
 static size_t fizzbuzz(uint64_t start, uint64_t stop, char *buffer) {
@@ -113,9 +113,9 @@ static size_t fizzbuzz_memoized_unrolled(uint64_t start, uint64_t stop, char *re
         exit(1);
     }
     char template_number[21];
-    size_t number_of_decimals = sprintf(template_number, "%lu", start);
+    size_t number_of_digits = sprintf(template_number, "%lu", start);
     char *prefix = template_number;
-    size_t prefix_length = number_of_decimals - 4;
+    size_t prefix_length = number_of_digits - 4;
 
     /* First we roll up to the point where we can start unrolling the loop. 
     */
@@ -139,18 +139,18 @@ static size_t fizzbuzz_memoized_unrolled(uint64_t start, uint64_t stop, char *re
     char unroll_template[208];
     fizzbuzz_memoized(align_stop, align_stop + 16, index, prefix, 
         prefix_length, unroll_template);
-    size_t unroll_template_size = 8 * number_of_decimals + 8 * 4 + 15;
+    size_t unroll_template_size = 8 * number_of_digits + 8 * 4 + 15;
     /* For each offset, number of preceding numbers times length, number
        off fizzes/buzzes times 4 and number of newline characters + 
        prefix length. */
-    size_t offset1  = 0 * number_of_decimals + 0 * 4 +  0 + prefix_length; 
-    size_t offset2  = 1 * number_of_decimals + 0 * 4 +  1 + prefix_length;
-    size_t offset4  = 2 * number_of_decimals + 1 * 4 +  3 + prefix_length;
-    size_t offset7  = 3 * number_of_decimals + 3 * 4 +  6 + prefix_length;
-    size_t offset8  = 4 * number_of_decimals + 3 * 4 +  7 + prefix_length;
-    size_t offset11 = 5 * number_of_decimals + 5 * 4 + 10 + prefix_length;
-    size_t offset13 = 6 * number_of_decimals + 6 * 4 + 12 + prefix_length;
-    size_t offset14 = 7 * number_of_decimals + 6 * 4 + 13 + prefix_length;
+    size_t offset1  = 0 * number_of_digits + 0 * 4 +  0 + prefix_length; 
+    size_t offset2  = 1 * number_of_digits + 0 * 4 +  1 + prefix_length;
+    size_t offset4  = 2 * number_of_digits + 1 * 4 +  3 + prefix_length;
+    size_t offset7  = 3 * number_of_digits + 3 * 4 +  6 + prefix_length;
+    size_t offset8  = 4 * number_of_digits + 3 * 4 +  7 + prefix_length;
+    size_t offset11 = 5 * number_of_digits + 5 * 4 + 10 + prefix_length;
+    size_t offset13 = 6 * number_of_digits + 6 * 4 + 12 + prefix_length;
+    size_t offset14 = 7 * number_of_digits + 6 * 4 + 13 + prefix_length;
     
  
     size_t i = align_stop;
@@ -201,7 +201,7 @@ static void FizzBuzzTemplate_initialize(FizzBuzzTemplate *fizzbuzz_template, uin
         );
         exit(1);
     }
-    size_t number_of_digits = calculate_number_of_decimals(start);
+    size_t number_of_digits = calculate_number_of_digits(start);
     switch (start % 15) {
         case 0:
             // print 'fizzbuzz\n' and then immediately start; 
@@ -351,7 +351,7 @@ int main() {
     buffer_size = 0;
     uint64_t end2 = uint64_min(10000000, end);
     while (start < end2) {
-        size_t number_of_digits = calculate_number_of_decimals(start);
+        size_t number_of_digits = calculate_number_of_digits(start);
         /* Estimate the output volume on the buffer. Every 15 units we make 
            a full round. That is 8 fizzes/buzzes. 8 numbers and 15 newlines.
            There are 667 of these rounds in a 10000. We add 208 because that is the size
@@ -371,7 +371,7 @@ int main() {
     FizzBuzzTemplate fizzbuzz_templates[3];
     memset(fizzbuzz_templates, 0, sizeof(FizzBuzzTemplate) * 3);
     while (start < end - 10000) {
-        size_t number_of_digits = calculate_number_of_decimals(start);
+        size_t number_of_digits = calculate_number_of_digits(start);
         size_t estimated_output_size = 667 * (8 * 4 + 8 * number_of_digits + 15) + 208;
         if (buffer_size + estimated_output_size > BUFFER_SIZE) {
             fwrite(buffer, 1, buffer_size, stdout);
