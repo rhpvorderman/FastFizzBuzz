@@ -326,3 +326,79 @@ By the way I also benchmarked disabling the number replacement instead.
 Also 600 milliseconds. So that shows me that the algorithm (memcpy vs 
 replacement) is not important here and that we are truly bound by cache or 
 memory speeds. 
+
+# Finishing up
+
+The in buffer replacement is implemented [here](./inbufferreplacement.c). It
+runs in 630 milliseconds on this laptop. That is over 50 GiB/s. 
+Quite acceptable, but it is also over 400 lines of code. So let's simplify.
+
+- The extra speed of the [loop unrolling](./loop_unrolling.c) does not have
+  a noticable effect when it is only used for creating a template and the
+  first 10 million iterations. So the fizzbuzz_memoized_unrolled function
+  can be deleted.
+- Deleting the fizzbuzz_memoized function in just using simple sprintf 
+  fizzbuzz does notably slow down though, so fizzbuzz_memoized should remain.
+
+# Final result and conclusion
+
+The [final code](./final.c) uses 345 lines of codes and operates at over 50
+GiB/s. We got there in the following steps:
+
+1. Use a [simple implementation](./reference.c) of fizzbuzz using printf
+2. Upgrade to a [buffered version](./buffered.c) using sprintf
+3. Create [custom number printing code](./number_conversion.c)
+4. Add [a function](./number_of_decimal_calculation.c) to quickly calculate 
+  the number of digits. 
+5. [Uncouple buffer](./uncouple_buffer.c) calculation from fizzbuzz main loop.
+6. [Memoize](./memoization.c) the last 3 digits and only calculate the preceding
+  digits once. 
+7. [Unroll the loop](./loop_unrolling.c) and find that the fixed positions of
+  Fizz, Buzz, FizzBuzz, and the preceding digits can efficiently be written
+  to the buffer at once.
+8. [Enlarge buffers](./larger_buffer.c) to make IO more efficient.
+9. [Do things in steps of 10_000](./ten_thousand.c). 
+10. [Simplify](./simplification.c) the code by removing the work from step 3 
+    and 4. Memoization is always faster than calculation.
+11. [Template whole buffers](./prefixreplacement.c) full of 10_000 iterations and 
+    only replace the preceding digits, the last 4 digits from  0000-9999 
+    already being in the template.
+12. Ensure that [the minimal amount of memory copying](./inbufferreplacement.c)
+    is needed.
+13. [Remove the specialized code of step 7](./final.c) in order to make the 
+    code a bit simpler.
+
+Our core loop where most of the work is done now looks like this:
+
+```C
+    for(size_t i=0; i<667; i++) {
+        char *restrict cursor = buffer + i * unroll_length;
+        memcpy(cursor + offset0, replace_chars, 4);
+        memcpy(cursor + offset1, replace_chars, 4);
+        memcpy(cursor + offset2, replace_chars, 4);
+        memcpy(cursor + offset3, replace_chars, 4);
+        memcpy(cursor + offset4, replace_chars, 4);
+        memcpy(cursor + offset5, replace_chars, 4);
+        memcpy(cursor + offset6, replace_chars, 4);
+        memcpy(cursor + offset7, replace_chars, 4);
+    }
+```
+Very simple. The resulting assembly looks like this:
+```asm
+.L58:
+        mov     rdx, rcx
+        mov     DWORD PTR [rcx], eax
+        add     rcx, r15
+        sub     rdx, rdi
+        mov     DWORD PTR [rdx+r14], eax
+        mov     DWORD PTR [rdx+r13], eax
+        mov     DWORD PTR [rdx+r12], eax
+        mov     DWORD PTR [rdx+r11], eax
+        mov     DWORD PTR [rdx+r10], eax
+        mov     DWORD PTR [rdx+r9], eax
+        mov     DWORD PTR [rdx+r8], eax
+        sub     rsi, 1
+        jne     .L58
+```
+I can't see how less work can be done. But maybe there are some quicker 
+implementations out there!
