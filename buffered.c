@@ -23,7 +23,7 @@ int main() {
             buffer_size += 5;
         }
         else {
-            buffer_size += sprintf(buffer+buffer_size, "%llu\n", i);
+            buffer_size += sprintf(buffer+buffer_size, "%lu\n", i);
         }
         if (buffer_size > BUFFER_LIMIT) {
             fwrite(buffer, 1, buffer_size, stdout);

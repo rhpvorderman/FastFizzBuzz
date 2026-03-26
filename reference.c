@@ -14,7 +14,7 @@ int main() {
             printf("Buzz\n");
         }
         else {
-            printf("%llu\n", i);
+            printf("%lu\n", i);
         }
     }
     return 0;
