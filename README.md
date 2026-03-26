@@ -333,16 +333,19 @@ The in buffer replacement is implemented [here](./inbufferreplacement.c). It
 runs in 630 milliseconds on this laptop. That is over 50 GiB/s. 
 Quite acceptable, but it is also over 400 lines of code. So let's simplify.
 
-- The extra speed of the [loop unrolling](./loop_unrolling.c) does not have
-  a noticable effect when it is only used for creating a template and the
+- The extra speed of the [loop unrolling](./loop_unrolling.c) does have
+  a measurable effect even when it is only used for creating a template and the
   first 10 million iterations. So the fizzbuzz_memoized_unrolled function
-  can be deleted.
+  can not be deleted. 
 - Deleting the fizzbuzz_memoized function in just using simple sprintf 
-  fizzbuzz does notably slow down though, so fizzbuzz_memoized should remain.
+  fizzbuzz does notably slow down as well.
+
+  The code cannot be simplified in that sense. Still there is a lot of so 
+  called "magic numbers". These should be replaced with named constants.
 
 # Final result and conclusion
 
-The [final code](./final.c) uses 345 lines of codes and operates at over 50
+The [final code](./final.c) uses 419 lines of codes and operates at over 50
 GiB/s. We got there in the following steps:
 
 1. Use a [simple implementation](./reference.c) of fizzbuzz using printf
@@ -365,8 +368,7 @@ GiB/s. We got there in the following steps:
     already being in the template.
 12. Ensure that [the minimal amount of memory copying](./inbufferreplacement.c)
     is needed.
-13. [Remove the specialized code of step 7](./final.c) in order to make the 
-    code a bit simpler.
+13. [Properly use constants](./final.c).
 
 Our core loop where most of the work is done now looks like this:
 
@@ -402,3 +404,9 @@ Very simple. The resulting assembly looks like this:
 ```
 I can't see how less work can be done. But maybe there are some quicker 
 implementations out there!
+
+This implementation seems to work at half L2 cache speed, which makes sense
+given that the buffer is modified (one write action) and then output to 
+the system (one read action). Doing two actions on the same buffer logically
+should lead to a theoretical maximum of half L2 cache speed since the buffer
+fits fully in L2 cache.

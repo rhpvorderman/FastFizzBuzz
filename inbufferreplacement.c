@@ -4,7 +4,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define BUFFER_SIZE (256 * 1024)
+/* We do 2000 rounds of fizzbuzz in a buffer. With a digit length of 20 at 
+uint64 max we need 207 characters per round. Add a 1000 characters for 
+overshoot. */
+#define BUFFER_SIZE (207 * 2000 + 1000)
 
 static char zero_to_9999[40000];
 

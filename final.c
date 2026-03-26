@@ -3,7 +3,19 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define BUFFER_SIZE (256 * 1024)
+#define FIZZ "Fizz\n"
+#define FIZZ_SIZE 5
+#define BUZZ "Buzz\n"
+#define BUZZ_SIZE 5
+#define FIZZBUZZ "FizzBuzz\n"
+#define FIZZBUZZ_SIZE 9
+/* The largest integer (UINT64_MAX) is 20 decimal digits in size.*/
+#define MAX_NUMBER_OF_DIGITS 20
+#define FIZZBUZZ_ROUND_SIZE (FIZZ_SIZE * 4 + BUZZ_SIZE * 2 + FIZZBUZZ_SIZE + (MAX_NUMBER_OF_DIGITS + 1) * 8)
+/* We do 2000 rounds of fizzbuzz in a buffer. With a digit length of 20 at 
+uint64 max we need 207 characters per round. Add a 1000 characters for 
+overshoot. */
+#define BUFFER_SIZE (FIZZBUZZ_ROUND_SIZE * 2000 + 1000)
 
 static char zero_to_9999[40000];
 
@@ -44,16 +56,16 @@ static size_t fizzbuzz(uint64_t start, uint64_t stop, char *buffer) {
     for (uint64_t i=start; i < stop; i++) {
 
         if (i % 15 == 0) {
-            memcpy(buffer + buffer_size, "FizzBuzz\n", 9);
-            buffer_size += 9;
+            memcpy(buffer + buffer_size, FIZZBUZZ, FIZZBUZZ_SIZE);
+            buffer_size += FIZZBUZZ_SIZE;
         }
         else if (i % 3 == 0) {
-            memcpy(buffer + buffer_size, "Fizz\n", 5);
-            buffer_size += 5;
+            memcpy(buffer + buffer_size, FIZZ, FIZZ_SIZE);
+            buffer_size += FIZZ_SIZE;
         }
         else if (i % 5 == 0) {
-            memcpy(buffer + buffer_size, "Buzz\n", 5);
-            buffer_size += 5;
+            memcpy(buffer + buffer_size, BUZZ, BUZZ_SIZE);
+            buffer_size += BUZZ_SIZE;
         }
         else {
             buffer_size += sprintf(buffer+buffer_size, "%lu\n", i);
@@ -65,39 +77,29 @@ static size_t fizzbuzz(uint64_t start, uint64_t stop, char *buffer) {
 static size_t fizzbuzz_memoized(
     uint64_t start, 
     uint64_t stop, 
+    size_t index, 
+    char *prefix,
+    size_t prefix_length,
     char *restrict buffer
 )
 {
-    if (start % 10000 != 0 || stop - start > 10000) {
-        fprintf(
-            stderr, 
-            "Assumption for memoization broken, start must be divisible by "
-            "10000, stop must be at most 10000 positions away from start.\n"
-            "Start: %lu; Stop: %lu\n", start, stop
-        );
-        exit(1);
-    }
-    char prefix[21];
-    size_t prefix_length = sprintf(prefix, "%lu", start / 10000);
     size_t buffer_size = 0;
-    size_t index = start % 10000;
     for (size_t i=start; i < stop; i++) {
         if (i % 15 == 0) {
-            memcpy(buffer + buffer_size, "FizzBuzz\n", 9);
-            buffer_size += 9;
+            memcpy(buffer + buffer_size, FIZZBUZZ, FIZZBUZZ_SIZE);
+            buffer_size += FIZZBUZZ_SIZE;
         }
         else if (i % 3 == 0) {
-            memcpy(buffer + buffer_size, "Fizz\n", 5);
-            buffer_size += 5;
+            memcpy(buffer + buffer_size, FIZZ, FIZZ_SIZE);
+            buffer_size += FIZZ_SIZE;
         }
         else if (i % 5 == 0) {
-            memcpy(buffer + buffer_size, "Buzz\n", 5);
-            buffer_size += 5;
+            memcpy(buffer + buffer_size, BUZZ, BUZZ_SIZE);
+            buffer_size += BUZZ_SIZE;
         }
         else {
-           /* Using a fixed memcpy size avoids a function call. The largest 
-                integer is 20 digits in size.*/
-            memcpy(buffer + buffer_size, prefix, 20);
+           /* Using a fixed memcpy size avoids a function call. */
+            memcpy(buffer + buffer_size, prefix, MAX_NUMBER_OF_DIGITS);
             buffer_size += prefix_length;
             /* Lookup the last 3 digits. */
             size_t pos = index * 4;
@@ -111,6 +113,78 @@ static size_t fizzbuzz_memoized(
 
 }
 
+static size_t fizzbuzz_memoized_unrolled(uint64_t start, uint64_t stop, char *restrict buffer) {
+    if (start % 10000 != 0 || stop - start > 10000) {
+        fprintf(
+            stderr, 
+            "Assumption for memoization broken, start must be divisible by "
+            "10000, stop must be at most 10000 positions away from start.\n"
+            "Start: %lu; Stop: %lu\n", start, stop
+        );
+        exit(1);
+    }
+    char template_number[MAX_NUMBER_OF_DIGITS + 1];  // +1 for terminating null.
+    size_t number_of_digits = sprintf(template_number, "%lu", start);
+    char *prefix = template_number;
+    size_t prefix_length = number_of_digits - 4;
+
+    /* First we roll up to the point where we can start unrolling the loop. 
+    */
+    static uint8_t iterations[15] = {1, 0, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 
+        4, 3, 2};
+    size_t align_count = iterations[start % 15];
+    size_t align_stop = uint64_min(start + align_count, stop);
+
+    size_t buffer_size = fizzbuzz_memoized(
+        start, align_stop, 0, prefix, prefix_length, buffer);;
+    size_t index = align_count;
+
+    /* The largest template will need will have 8 numbers with size of 20,
+       5 fizzes, 3 buzzes (including fizzbuzz) and 15 newlines. This equals
+       8*20 + 5*4 + 3*4 + 15 = 160 + 20 + 12 + 15 = 207. We make the template
+       208 units because that is equal to 13 * 16 and the compiler can use
+       16 byte vectors for copying.
+       Also calculate the offset where the template numbers should be. This
+       is constant for each loop.
+       */
+    char unroll_template[208];
+    fizzbuzz_memoized(align_stop, align_stop + 16, index, prefix, 
+        prefix_length, unroll_template);
+    size_t unroll_template_size = 8 * number_of_digits + 8 * 4 + 15;
+    /* For each offset, number of preceding numbers times length, number
+       off fizzes/buzzes times 4 and number of newline characters + 
+       prefix length. */
+    size_t offset1  = 0 * (number_of_digits + 1) + 0 * FIZZ_SIZE + 0 * BUZZ_SIZE + prefix_length; 
+    size_t offset2  = 1 * (number_of_digits + 1) + 0 * FIZZ_SIZE + 0 * BUZZ_SIZE + prefix_length;
+    size_t offset4  = 2 * (number_of_digits + 1) + 1 * FIZZ_SIZE + 0 * BUZZ_SIZE + prefix_length;
+    size_t offset7  = 3 * (number_of_digits + 1) + 2 * FIZZ_SIZE + 1 * BUZZ_SIZE + prefix_length;
+    size_t offset8  = 4 * (number_of_digits + 1) + 2 * FIZZ_SIZE + 1 * BUZZ_SIZE + prefix_length;
+    size_t offset11 = 5 * (number_of_digits + 1) + 3 * FIZZ_SIZE + 2 * BUZZ_SIZE + prefix_length;
+    size_t offset13 = 6 * (number_of_digits + 1) + 4 * FIZZ_SIZE + 2 * BUZZ_SIZE + prefix_length;
+    size_t offset14 = 7 * (number_of_digits + 1) + 4 * FIZZ_SIZE + 2 * BUZZ_SIZE + prefix_length;
+ 
+    size_t i = align_stop;
+    uint64_t unroll_stop = stop - 14;
+    for (; i<unroll_stop; i+=15 ) {
+        char *restrict cursor = buffer + buffer_size;
+        /* Fixed size memcpy faster than function call */
+        memcpy(cursor, unroll_template, sizeof(unroll_template));
+        memcpy(cursor + offset1,  zero_to_9999 + ((index +  0) * 4), 4);
+        memcpy(cursor + offset2,  zero_to_9999 + ((index +  1) * 4), 4);
+        memcpy(cursor + offset4,  zero_to_9999 + ((index +  3) * 4), 4);
+        memcpy(cursor + offset7,  zero_to_9999 + ((index +  6) * 4), 4);
+        memcpy(cursor + offset8,  zero_to_9999 + ((index +  7) * 4), 4);
+        memcpy(cursor + offset11, zero_to_9999 + ((index + 10) * 4), 4);
+        memcpy(cursor + offset13, zero_to_9999 + ((index + 12) * 4), 4);
+        memcpy(cursor + offset14, zero_to_9999 + ((index + 13) * 4), 4);
+        cursor += 15;
+        index += 15;
+        buffer_size += unroll_template_size;
+    }
+    buffer_size += fizzbuzz_memoized(
+        i, stop, index, prefix, prefix_length, buffer + buffer_size);
+    return buffer_size;
+}
 
 typedef struct _FizzBuzzTemplate {
     uint64_t templated_from;
@@ -146,20 +220,20 @@ static size_t FizzBuzzTemplate_initialize_buffer(
         case 5:
             // buzz, fizz, 7, 8, fizz, buzz, 11, fizz, 13, 14, fizzbuzz
             fizzbuzz_template->number_of_pre_unroll_offsets = 5;
-            fizzbuzz_template->pre_unroll_offsets[0] = 2 * 5 + 0 * (number_of_digits + 1); // 7 
-            fizzbuzz_template->pre_unroll_offsets[1] = 2 * 5 + 1 * (number_of_digits + 1); // 8
-            fizzbuzz_template->pre_unroll_offsets[2] = 4 * 5 + 2 * (number_of_digits + 1); // 11
-            fizzbuzz_template->pre_unroll_offsets[3] = 5 * 5 + 3 * (number_of_digits + 1); // 13
-            fizzbuzz_template->pre_unroll_offsets[4] = 5 * 5 + 4 * (number_of_digits + 1); // 14
-            fizzbuzz_template->offset_to_unroll = 5 * 5 + 5 * (number_of_digits + 1) + 9; // FizzBuzz
+            fizzbuzz_template->pre_unroll_offsets[0] = 1 * FIZZ_SIZE + 1 * BUZZ_SIZE + 0 * (number_of_digits + 1); // 7 
+            fizzbuzz_template->pre_unroll_offsets[1] = 1 * FIZZ_SIZE + 1 * BUZZ_SIZE + 1 * (number_of_digits + 1); // 8
+            fizzbuzz_template->pre_unroll_offsets[2] = 2 * FIZZ_SIZE + 2 * BUZZ_SIZE + 2 * (number_of_digits + 1); // 11
+            fizzbuzz_template->pre_unroll_offsets[3] = 3 * FIZZ_SIZE + 2 * BUZZ_SIZE + 3 * (number_of_digits + 1); // 13
+            fizzbuzz_template->pre_unroll_offsets[4] = 3 * FIZZ_SIZE + 2 * BUZZ_SIZE + 4 * (number_of_digits + 1); // 14
+            fizzbuzz_template->offset_to_unroll = 3 * FIZZ_SIZE + 2 * BUZZ_SIZE + 5 * (number_of_digits + 1) + FIZZBUZZ_SIZE; // FizzBuzz
             break;
         case 10:
             // buzz, 11, fizz, 13, 14, fizzbuzz
             fizzbuzz_template->number_of_pre_unroll_offsets = 3;
-            fizzbuzz_template->pre_unroll_offsets[0] = 1 * 5 + 0 * (number_of_digits + 1); // 11
-            fizzbuzz_template->pre_unroll_offsets[1] = 2 * 5 + 1 * (number_of_digits + 1); // 13
-            fizzbuzz_template->pre_unroll_offsets[2] = 2 * 5 + 2 * (number_of_digits + 1); // 14
-            fizzbuzz_template->offset_to_unroll = 2 * 5 + 3 * (number_of_digits + 1) + 9; // FizzBuzz
+            fizzbuzz_template->pre_unroll_offsets[0] = 0 * FIZZ_SIZE + 1 * BUZZ_SIZE + 0 * (number_of_digits + 1); // 11
+            fizzbuzz_template->pre_unroll_offsets[1] = 1 * FIZZ_SIZE + 1 * BUZZ_SIZE + 1 * (number_of_digits + 1); // 13
+            fizzbuzz_template->pre_unroll_offsets[2] = 1 * FIZZ_SIZE + 1 * BUZZ_SIZE + 2 * (number_of_digits + 1); // 14
+            fizzbuzz_template->offset_to_unroll = 1 * FIZZ_SIZE + 1 * BUZZ_SIZE + 3 * (number_of_digits + 1) + FIZZBUZZ_SIZE; // FizzBuzz
             break;
         default:
             fprintf(
@@ -174,17 +248,17 @@ static size_t FizzBuzzTemplate_initialize_buffer(
     /* For each offset, number of preceding numbers times length, number
        off fizzes/buzzes times 5 */
     /* 1, 2, fizz, 4, buzz, fizz, 7, 8, fizz, buzz, 11, fizz, 13, 14, fizzbuzz */
-    fizzbuzz_template->unroll_offsets[0] = 0 * (number_of_digits + 1) + 0 * 5; // 1
-    fizzbuzz_template->unroll_offsets[1] = 1 * (number_of_digits + 1) + 0 * 5; // 2
-    fizzbuzz_template->unroll_offsets[2] = 2 * (number_of_digits + 1) + 1 * 5; // 4
-    fizzbuzz_template->unroll_offsets[3] = 3 * (number_of_digits + 1) + 3 * 5; // 7
-    fizzbuzz_template->unroll_offsets[4] = 4 * (number_of_digits + 1) + 3 * 5; // 8
-    fizzbuzz_template->unroll_offsets[5] = 5 * (number_of_digits + 1) + 5 * 5; // 11
-    fizzbuzz_template->unroll_offsets[6] = 6 * (number_of_digits + 1) + 6 * 5; // 13
-    fizzbuzz_template->unroll_offsets[7] = 7 * (number_of_digits + 1) + 6 * 5; // 14
-    fizzbuzz_template->unroll_length = 8 * (number_of_digits + 1) + 6 * 5 + 9; 
+    fizzbuzz_template->unroll_offsets[0] = 0 * (number_of_digits + 1) + 0 * FIZZ_SIZE + 0 * BUZZ_SIZE; // 1
+    fizzbuzz_template->unroll_offsets[1] = 1 * (number_of_digits + 1) + 0 * FIZZ_SIZE + 0 * BUZZ_SIZE; // 2
+    fizzbuzz_template->unroll_offsets[2] = 2 * (number_of_digits + 1) + 1 * FIZZ_SIZE + 0 * BUZZ_SIZE; // 4
+    fizzbuzz_template->unroll_offsets[3] = 3 * (number_of_digits + 1) + 2 * FIZZ_SIZE + 1 * BUZZ_SIZE; // 7
+    fizzbuzz_template->unroll_offsets[4] = 4 * (number_of_digits + 1) + 2 * FIZZ_SIZE + 1 * BUZZ_SIZE; // 8
+    fizzbuzz_template->unroll_offsets[5] = 5 * (number_of_digits + 1) + 3 * FIZZ_SIZE + 2 * BUZZ_SIZE; // 11
+    fizzbuzz_template->unroll_offsets[6] = 6 * (number_of_digits + 1) + 4 * FIZZ_SIZE + 2 * BUZZ_SIZE; // 13
+    fizzbuzz_template->unroll_offsets[7] = 7 * (number_of_digits + 1) + 4 * FIZZ_SIZE + 2 * BUZZ_SIZE; // 14
+    fizzbuzz_template->unroll_length = 8 * (number_of_digits + 1) + 4 * FIZZ_SIZE + 2 * BUZZ_SIZE + FIZZBUZZ_SIZE; 
     fizzbuzz_template->buffer = buffer;
-    fizzbuzz_template->template_size = fizzbuzz_memoized(
+    fizzbuzz_template->template_size = fizzbuzz_memoized_unrolled(
         start, start + 10000, fizzbuzz_template->buffer);
     return fizzbuzz_template->template_size;
 }
@@ -303,16 +377,16 @@ int main() {
     while (start < end2) {
         size_t number_of_digits = calculate_number_of_digits(start);
         /* Estimate the output volume on the buffer. Every 15 units we make 
-           a full round. That is 8 fizzes/buzzes. 8 numbers and 15 newlines.
+           a full round..
            There are 667 of these rounds in a 10000. We add 208 because that is the size
            of a template. */
-        size_t estimated_output_size = 667 * (8 * 4 + 8 * number_of_digits + 15) + 208;
+        size_t estimated_output_size = 667 * (FIZZ_SIZE * 4 + BUZZ_SIZE * 2 +  8 * (number_of_digits + 1) + FIZZBUZZ_SIZE) + 208;
         if (buffer_size + estimated_output_size > BUFFER_SIZE) {
             fwrite(buffer, 1, buffer_size, stdout);
             buffer_size = 0;
         }
         stop = uint64_min(start + 10000, end);
-        buffer_size += fizzbuzz_memoized(start, stop, buffer + buffer_size);
+        buffer_size += fizzbuzz_memoized_unrolled(start, stop, buffer + buffer_size);
         start = stop;
     }
     fwrite(buffer, 1, buffer_size, stdout);
