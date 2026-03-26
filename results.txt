@@ -1,0 +1,65 @@
+buffered.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./buffered.c.out > /dev/null
+  Time (abs ≡):        82.338 s               [User: 81.799 s, System: 0.484 s]
+ 
+final.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./final.c.out > /dev/null
+  Time (abs ≡):        646.9 ms               [User: 604.6 ms, System: 40.7 ms]
+ 
+inbufferreplacement.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./inbufferreplacement.c.out > /dev/null
+  Time (abs ≡):        620.3 ms               [User: 574.7 ms, System: 44.1 ms]
+ 
+larger_buffer.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./larger_buffer.c.out > /dev/null
+  Time (abs ≡):         1.714 s               [User: 1.648 s, System: 0.064 s]
+ 
+loop_unrolling.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./loop_unrolling.c.out > /dev/null
+  Time (abs ≡):         6.068 s               [User: 4.226 s, System: 1.835 s]
+ 
+memoization.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./memoization.c.out > /dev/null
+  Time (abs ≡):         8.899 s               [User: 7.184 s, System: 1.712 s]
+ 
+number_conversion.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./number_conversion.c.out > /dev/null
+  Time (abs ≡):        26.341 s               [User: 25.883 s, System: 0.436 s]
+ 
+number_of_digit_calculation.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./number_of_digit_calculation.c.out > /dev/null
+  Time (abs ≡):        26.185 s               [User: 25.713 s, System: 0.452 s]
+ 
+prefixreplacement.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./prefixreplacement.c.out > /dev/null
+  Time (abs ≡):         1.360 s               [User: 1.269 s, System: 0.089 s]
+ 
+reference.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./reference.c.out > /dev/null
+  Time (abs ≡):        116.130 s               [User: 114.079 s, System: 1.979 s]
+ 
+simplification.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./simplification.c.out > /dev/null
+  Time (abs ≡):         1.644 s               [User: 1.583 s, System: 0.060 s]
+ 
+ten_thousand.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./ten_thousand.c.out > /dev/null
+  Time (abs ≡):         1.611 s               [User: 1.552 s, System: 0.053 s]
+ 
+uncouple_buffer.c
+89376fe05131799159c9907addd39b66  stdin
+Benchmark 1: ./uncouple_buffer.c.out > /dev/null
+  Time (abs ≡):        27.221 s               [User: 25.416 s, System: 1.787 s]
+ 
